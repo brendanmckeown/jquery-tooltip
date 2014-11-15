@@ -1,0 +1,20 @@
+/**
+ * jquery.tooltip.js
+ * https://github.com/brendanmckeown/jquery-tooltip
+ */
+
+.tooltip {
+	position: relative;
+}
+
+.tooltip-button {
+	cursor: pointer;
+}
+
+.tooltip-content {
+	display: none;
+	position: absolute;
+	background: #eee;
+	width: 140px;
+	height: 80px;
+}

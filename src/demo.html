@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>jQuery Tooltip Plugin Demo</title>
+		<link rel="stylesheet" href="jquery.tooltip.css" type="text/css">
+	</head>
+	<body>
+		<div class="tooltip">
+			<button class="tooltip-button" data-tooltip-id="tooltip-content-id">Click</button>
+			<div class="tooltip-content" id="tooltip-content-id">
+				Fusce tincidunt lacus libero, sit amet malesuada turpis posuere vel.
+			</div>
+		</div>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+		<script src="jquery.tooltip.js"></script>
+		<script type="text/javascript">
+			$(function(){
+				$('.tooltip-button').tooltip();
+			});
+		</script>
+	</body>
+</html>
