@@ -3,165 +3,143 @@
  * https://github.com/brendanmckeown/jquery-tooltip
  */
 
+/* global jQuery */
+
+var Tooltip;
+
 (function($){
 'use strict';
 
-var dataKey = 'tooltip';
-var ready = true;
-var openTimer = null;
-var closeTimer = null;
+	Tooltip = function(options, el){
 
-var methods = {
+		this.$el = $(el);
 
-	init: function(options) {
-		// merge user options with default settings
-		var settings = $.extend({
+		// merge specified options and element data attributes with default settings
+		this.settings = $.extend({
 			tooltipAnimation: 'fade', // 'fade' or 'slide'
 			tooltipActiveClass: 'active', // added to button while content is shown
 			tooltipShowEvent: 'click', // button event to show content - 'click' or 'mouseover'
+			tooltipId: '', // id of content container element
 			tooltipAutoHide: true, // false to keep content open unless button is clicked again
-			tooltipSpeedIn: 500, // duration of show animation (in milliseconds)
-			tooltipSpeedOut: 300, // duration of hide animation (in milliseconds)
+			tooltipSpeedIn: 400, // duration of show animation (in milliseconds)
+			tooltipSpeedOut: 200, // duration of hide animation (in milliseconds)
 			tooltipDelayShow: 500, // delay after button mouseover to show content (in milliseconds)
-			tooltipDelayHide: 2000 // delay after button mouseout to hide content (in milliseconds)
-		}, options);
+			tooltipDelayHide: 1400 // delay after button mouseout to hide content (in milliseconds)
+		}, options, this.$el.data());
 
+		this.$content = $('#' + this.settings.tooltipId);
+
+		if (!this.$content.length) {
+			return false;
+		}
+
+		this.ready = true;
+		this.openTimer = null;
+		this.closeTimer = null;
+
+		// event bindings
+		this.$el.on(this.settings.tooltipShowEvent, $.proxy(tooltipInteraction, this));
+		if (this.settings.tooltipAutoHide) {
+			this.$el.on('mouseout.tooltip', $.proxy(tooltipMouseout, this));
+			this.$content.on('mouseover.tooltip mouseout.tooltip', $.proxy(contentMouseEvent, this));
+		}
+
+		return this;
+	};
+
+	Tooltip.prototype = {
+
+		show: function() {
+			if (!this.ready) return;
+			this.ready = false;
+			var settings = this.settings,
+				showAnimationFn = (settings.tooltipAnimation === 'slide') ? 'slideDown' : 'fadeIn';
+			this.openTimer = null;
+			this.$content[showAnimationFn](settings.tooltipSpeedIn, $.proxy(function(){
+				this.ready = true;
+			}, this));
+			this.$el.addClass(settings.tooltipActiveClass);
+			this.active = true;
+			$('body').on('click.tooltip', $.proxy(bodyClick, this));
+		},
+
+		hide: function() {
+			if (!this.ready) return;
+			this.ready = false;
+			var settings = this.settings,
+				hideAnimationFn = (settings.tooltipAnimation === 'slide') ? 'slideUp' : 'fadeOut';
+			this.closeTimer = null;
+			this.$content[hideAnimationFn](settings.tooltipSpeedOut, $.proxy(function(){
+				this.ready = true;
+			}, this));
+			this.$el.removeClass(settings.tooltipActiveClass);
+			this.active = false;
+			$('body').off('click.tooltip');
+		}
+	};
+
+	function tooltipInteraction(event) {
+		event.preventDefault();
+		event.stopPropagation();
+		switch (event.type) {
+			case 'click':
+				if (this.active) {
+					this.hide();
+				} else {
+					this.show();
+				}
+				break;
+			case 'mouseover':
+				if (this.active) {
+					// clear close timer
+					setCloseTimer.call(this, event.type);
+				} else {
+					// set open timer
+					this.openTimer = setTimeout($.proxy(function(){
+						this.show();
+					}, this), this.settings.tooltipDelayShow);
+				}
+				break;
+			default:
+		}
+	}
+
+	function bodyClick(event) {
+		if (event.target !== this.$el.get(0)
+			&& event.target !== this.$content.get(0)) {
+				clearTimeout(this.closeTimer);
+				this.hide();
+		}
+	}
+
+	function tooltipMouseout(event){
+		event.stopPropagation();
+		if (this.openTimer) {
+			clearTimeout(this.openTimer);
+			this.ready = true;
+		}
+		setCloseTimer.call(this, event.type);
+	}
+
+	function contentMouseEvent(event){
+		event.stopPropagation();
+		setCloseTimer.call(this, event.type);
+	}
+
+	function setCloseTimer(eventType) {
+		if (eventType === 'mouseover' && this.closeTimer) {
+			clearTimeout(this.closeTimer);
+		} else if (this.active) {
+			this.closeTimer = setTimeout($.proxy(function(){
+				this.hide();
+			}, this), this.settings.tooltipDelayHide);
+		}
+	}
+
+	$.fn.tooltip = function(options) {
 		return this.each(function(){
-			var button = this,
-				$button = $(this),
-				contentId = $button.data('tooltip-id'),
-				$content = $('#' + contentId);
-			// check for existance of content element
-			if (contentId && $content.length) {
-				var data = {
-					$content: $content
-				};
-				// get options set by data attributes
-				var dataAttrs = $button.data();
-				for (var property in dataAttrs) {
-					if (dataAttrs.hasOwnProperty(property)) {
-						if (settings.hasOwnProperty(property)) {
-							settings[property] = dataAttrs[property];
-						}
-					}
-				}
-				// save reference to button on content
-				$content.data('tooltip-button', $button);
-				// save settings in button data
-				$button.data(dataKey, $.extend(data, settings));
-				// event bindings
-				$button.on(settings.tooltipShowEvent, buttonInteraction);
-				if (settings.tooltipAutoHide) {
-					$button.on('mouseout.tooltip', buttonMouseout);
-					$content.on('mouseover.tooltip mouseout.tooltip', contentMouseEvent);
-				}
-			}
+			new Tooltip(options, this);
 		});
-	},
-
-	showContent: function() {
-		if (!ready) return;
-		ready = false;
-		var $button = $(this),
-			data = $button.data(dataKey),
-			$content = data.$content,
-			showAnimationFn = (data.tooltipAnimation === 'slide') ? 'slideDown' : 'fadeIn';
-		openTimer = null;
-		// show tooltip content
-		$content[showAnimationFn](data.tooltipSpeedIn, function(){
-			ready = true;
-		});
-		// add active class to tooltip button
-		$button.addClass(data.tooltipActiveClass);
-		// update tooltip data
-		data.active = true;
-		$button.data(dataKey, data);
-	},
-
-	hideContent: function() {
-		if (!ready) return;
-		ready = false;
-		var $button = $(this),
-			data = $button.data(dataKey),
-			$content = data.$content,
-			hideAnimationFn = (data.tooltipAnimation === 'slide') ? 'slideUp' : 'fadeOut';
-		closeTimer = null;
-		// hide tooltip content
-		$content[hideAnimationFn](data.tooltipSpeedOut, function(){
-			ready = true;
-		});
-		// remove active class from tooltip button
-		$button.removeClass(data.tooltipActiveClass);
-		// update tooltip data
-		data.active = false;
-		$button.data(dataKey, data);
-	}
-
-};
-
-function buttonInteraction(event) {
-	event.preventDefault();
-	event.stopPropagation();
-	var button = this;
-	var data = $(button).data(dataKey);
-	switch (event.type) {
-		case 'click':
-			if (data.active) {
-				methods.hideContent.call(button);
-			} else {
-				methods.showContent.call(button);
-			}
-			break;
-		case 'mouseover':
-			if (data.active) {
-				// clear close timer
-				setCloseTimer(event.type);
-			} else {
-				// set open timer
-				openTimer = setTimeout(function(){
-					methods.showContent.call(button);
-				}, data.tooltipDelayShow);
-			}
-			break;
-		default:
-	}
-}
-
-function buttonMouseout(event){
-	event.stopPropagation();
-	if (openTimer) {
-		clearTimeout(openTimer);
-		ready = true;
-	}
-	setCloseTimer.call(this, event.type);
-}
-
-function contentMouseEvent(event){
-	event.stopPropagation();
-	var button = $(this).data('tooltip-button');
-	setCloseTimer.call(button, event.type);
-}
-
-function setCloseTimer(eventType) {
-	var button = this,
-		data = $(button).data(dataKey);
-	if (eventType === 'mouseover' && closeTimer) {
-		clearTimeout(closeTimer);
-	} else if (data.active) {
-		closeTimer = setTimeout(function(){
-			methods.hideContent.call(button);
-		}, data.tooltipDelayHide);
-	}
-}
-
-$.fn.tooltip = function(method) {
-	if (methods[method]) {
-		return methods[method].apply(this, Array.prototype.slice.call(arguments, 1));
-	} else if (typeof method === 'object' || ! method) {
-		return methods.init.apply(this, arguments);
-	} else {
-		$.error( 'Method ' +  method + ' does not exist.' );
-	}
-};
+	};
 
 })(jQuery);
