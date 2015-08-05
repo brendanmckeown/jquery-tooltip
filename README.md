@@ -14,6 +14,9 @@ All options can be set either on initialization, or by data attribute (e.g. `dat
 - `tooltipSpeedOut` - (integer) animation duration for hiding content, default: 300 (milliseconds)
 - `tooltipDelayShow` - (integer) delay after button event to show content, default: 500 (milliseconds)
 - `tooltipDelayHide` - (integer) delay after mouseout to hide content, default: 2000 (milliseconds)
+- `closeButton` - (boolean) toggle for inserting a close button inside the tooltip content div
+- `closeButtonClass` - (string) class added to close button
+- `closeButtonText` - (string) text added to close button
 
 ## Methods ##
 
