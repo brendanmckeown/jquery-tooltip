@@ -3,6 +3,34 @@
  * https://github.com/brendanmckeown/jquery-tooltip
  */
 
+/**
+ * Usage Example:
+
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<title>jQuery Tooltip Plugin</title>
+			<link rel="stylesheet" href="jquery.tooltip.css" type="text/css">
+		</head>
+		<body>
+			<div class="tooltip">
+				<button class="tooltip-button" data-tooltip-id="tooltip-content-id">Click</button>
+				<div class="tooltip-content" id="tooltip-content-id">
+					Fusce tincidunt lacus libero, sit amet malesuada turpis posuere vel.
+				</div>
+			</div>
+			<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+			<script src="jquery.tooltip.js"></script>
+			<script type="text/javascript">
+				$(function(){
+					$('.tooltip-button').tooltip();
+				});
+			</script>
+		</body>
+	</html>
+
+ */
+
 /* global jQuery */
 
 var Tooltip;
@@ -24,13 +52,22 @@ var Tooltip;
 			tooltipSpeedIn: 400, // duration of show animation (in milliseconds)
 			tooltipSpeedOut: 200, // duration of hide animation (in milliseconds)
 			tooltipDelayShow: 500, // delay after button mouseover to show content (in milliseconds)
-			tooltipDelayHide: 1400 // delay after button mouseout to hide content (in milliseconds)
+			tooltipDelayHide: 1400, // delay after button mouseout to hide content (in milliseconds)
+			closeButton: false,
+			closeButtonClass: 'tooltip-close-button',
+			closeButtonText: 'x'
 		}, options, this.$el.data());
 
 		this.$content = $('#' + this.settings.tooltipId);
 
 		if (!this.$content.length) {
 			return false;
+		}
+
+		if (this.settings.closeButton) {
+			this.$closeButton = $("<button type='button'></button>").text(this.settings.closeButtonText)
+				.addClass(this.settings.closeButtonClass)
+				.prependTo(this.$content);
 		}
 
 		this.ready = true;
